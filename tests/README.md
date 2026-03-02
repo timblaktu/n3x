@@ -10,7 +10,38 @@ The testing framework uses NixOS `nixosTest` for automated integration tests. Ea
 
 ### Dual Backend Architecture (Plan 012)
 
-n3x supports two build backends with unified test infrastructure:
+n3x supports two build backends with unified test infrastructure.
+
+#### What a Cluster Test Looks Like
+
+```mermaid
+flowchart TD
+    subgraph DRIVER["Test Driver · Python Script"]
+        direction LR
+        PH["Phase 0-2: Boot + Network"]
+        PK["Phase 3-8: K3s Cluster"]
+        PH --> PK
+    end
+
+    subgraph VMS["3 QEMU/KVM VMs"]
+        direction LR
+        S1["server-1\n2 vCPUs · 2GB"]
+        S2["server-2\n2 vCPUs · 2GB"]
+        A1["agent-1\n2 vCPUs · 1.5GB"]
+    end
+
+    subgraph NET["VDE Virtual Switch"]
+        direction LR
+        SIMPLE["simple\neth1 flat"]
+        VLANS["vlans\neth1.100 + eth1.200"]
+        BOND["bonding-vlans\nbond0.100 + bond0.200"]
+    end
+
+    DRIVER --> VMS
+    VMS --- NET
+```
+
+Each test selects one network profile variant. The same 3-node cluster topology runs across all profiles and both backends:
 
 | Backend | Build System | Test Framework | Use Case |
 |---------|--------------|----------------|----------|
@@ -43,6 +74,23 @@ nix build '.#checks.x86_64-linux.k3s-cluster-formation.driverInteractive'
 ## Test Layer Hierarchy
 
 Tests are organized by layer, with higher layers depending on lower layers passing:
+
+```mermaid
+flowchart LR
+    L1["L1: Boot\n15-30s"]
+    L2["L2: Network\n30-60s"]
+    L3["L3: K3s Service\n60-90s"]
+    L4["L4: Cluster\n2-5 min"]
+    L4P["L4+: Advanced\n5-15 min"]
+
+    L1 --> L2 --> L3 --> L4 --> L4P
+
+    style L1 fill:#e8f5e9
+    style L2 fill:#e3f2fd
+    style L3 fill:#fff3e0
+    style L4 fill:#fce4ec
+    style L4P fill:#f3e5f5
+```
 
 | Layer | Name | What It Tests | Pass Criteria |
 |-------|------|---------------|---------------|
@@ -77,6 +125,47 @@ Full test parity: 4 network profiles × 2 boot modes × 2 backends = 16 tests
 - **NixOS UEFI**: UEFI firmware → systemd-boot → kernel (validates bootloader)
 - **Debian Firmware**: UEFI → GRUB/systemd-boot from `.wic` image (default, production-like)
 - **Debian Direct**: Direct kernel boot via `-kernel`/`-initrd` (faster, bypasses bootloader)
+
+---
+
+## Test Execution Phases
+
+Every cluster test follows the same phase sequence, defined in `tests/lib/test-scripts/`. Profile-specific phases activate based on the selected network profile:
+
+```mermaid
+flowchart TD
+    P0["Phase 0: Start DHCP Server\n(dhcp-* profiles only)"]
+    P1["Phase 1: Boot All Nodes\nwait_for_unit multi-user.target"]
+    P15["Phase 1.5: Verify DHCP Leases\n(dhcp-* profiles only)"]
+    P2["Phase 2: Verify Interfaces + IPs\nall profiles"]
+    P25["Phase 2.5: VLAN Tag Verification\n(vlans / bonding-vlans only)"]
+    P26["Phase 2.6: Storage Network Ping\n(vlans / bonding-vlans only)"]
+    P27["Phase 2.7: Cross-VLAN Isolation\n(vlans / bonding-vlans only)"]
+    P3["Phase 3: Start Primary Server\nk3s cluster-init"]
+    P4["Phase 4: Primary Ready\nkubectl get nodes → Ready"]
+    P5["Phase 5: Join Secondary Server\netcd HA quorum"]
+    P6["Phase 6: Secondary Ready"]
+    P7["Phase 7: Join Agent\nworker node"]
+    P8["Phase 8: All Nodes Ready\n3/3 Ready — PASS"]
+
+    P0 -.-> P1
+    P1 --> P15
+    P15 -.-> P2
+    P1 --> P2
+    P2 --> P25
+    P25 -.-> P26 -.-> P27
+    P2 --> P3
+    P27 -.-> P3
+    P3 --> P4 --> P5 --> P6 --> P7 --> P8
+
+    style P0 fill:#e8f5e9,stroke-dasharray: 5 5
+    style P15 fill:#e8f5e9,stroke-dasharray: 5 5
+    style P25 fill:#e3f2fd,stroke-dasharray: 5 5
+    style P26 fill:#e3f2fd,stroke-dasharray: 5 5
+    style P27 fill:#e3f2fd,stroke-dasharray: 5 5
+```
+
+Dashed boxes are conditional — they execute only for the indicated profiles. Solid boxes run for every cluster test.
 
 ---
 

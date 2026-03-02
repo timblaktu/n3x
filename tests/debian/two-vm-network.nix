@@ -140,8 +140,9 @@ let
         # ==========================================================================
         log_section("PHASE 4", "Waiting for VDE switch to establish connectivity")
 
-        # VDE switch needs time to learn MAC addresses
-        time.sleep(3)
+        # Wait for VDE switch to learn MAC addresses by polling ICMP
+        vm1.wait_until_succeeds(f"ping -c 1 {VM2_IP}", timeout=15)
+        tlog("  VDE connectivity established (vm1 -> vm2 ping)")
 
         # ==========================================================================
         # PHASE 5: Test connectivity
@@ -149,40 +150,18 @@ let
         log_section("PHASE 5", "Testing connectivity")
 
         # Start simple TCP listeners using socat (known to be available in swupdate images)
-        # Using same pattern as swupdate-network-ota.nix
         vm2.succeed("nohup socat TCP-LISTEN:9999,fork,reuseaddr EXEC:'/bin/echo hello' > /tmp/socat.log 2>&1 &")
         vm1.succeed("nohup socat TCP-LISTEN:9998,fork,reuseaddr EXEC:'/bin/echo hello' > /tmp/socat.log 2>&1 &")
-        time.sleep(1)
 
-        # Verify listeners are up
-        vm1_listen = vm1.execute("ss -tln | grep 9998")
-        vm2_listen = vm2.execute("ss -tln | grep 9999")
-        tlog(f"  vm1 listening: {vm1_listen[0] == 0}")
-        tlog(f"  vm2 listening: {vm2_listen[0] == 0}")
+        # Wait for listeners to be ready (use 127.0.0.1, not localhost — ISAR images lack /etc/hosts)
+        wait_for_tcp(vm1, "127.0.0.1", 9998, description="vm1 socat listener")
+        wait_for_tcp(vm2, "127.0.0.1", 9999, description="vm2 socat listener")
 
-        # Try TCP connectivity with retries (VDE switch may need traffic to learn MACs)
-        tlog("  Testing TCP connectivity...")
-        for attempt in range(5):
-            # Use netcat for connectivity test
-            vm1_nc = vm1.execute(f"nc -zv -w 3 {VM2_IP} 9999 2>&1")
-            vm2_nc = vm2.execute(f"nc -zv -w 3 {VM1_IP} 9998 2>&1")
-            tlog(f"  Attempt {attempt + 1}: vm1->vm2={vm1_nc[0]}, vm2->vm1={vm2_nc[0]}")
-            if vm1_nc[0] == 0 and vm2_nc[0] == 0:
-                tlog("  Network connectivity established!")
-                break
-            time.sleep(2)
-        else:
-            # Debug info before failing
-            vm1_arp = vm1.execute("ip neigh show")[1]
-            vm2_arp = vm2.execute("ip neigh show")[1]
-            tlog(f"  vm1 ARP: {vm1_arp}")
-            tlog(f"  vm2 ARP: {vm2_arp}")
-
-        # Final bidirectional verification with nc
-        vm1.succeed(f"nc -zv -w 5 {VM2_IP} 9999")
-        tlog(f"  vm1 -> vm2 ({VM2_IP}:9999): OK")
-        vm2.succeed(f"nc -zv -w 5 {VM1_IP} 9998")
-        tlog(f"  vm2 -> vm1 ({VM1_IP}:9998): OK")
+        # Test cross-VM TCP connectivity
+        tlog("  Testing cross-VM TCP connectivity...")
+        wait_for_tcp(vm1, VM2_IP, 9999, description="vm1->vm2 TCP")
+        wait_for_tcp(vm2, VM1_IP, 9998, description="vm2->vm1 TCP")
+        tlog("  Bidirectional TCP connectivity verified")
 
         # Cleanup listeners
         vm1.execute("pkill socat")

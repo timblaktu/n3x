@@ -1,6 +1,6 @@
 # NixOS Backend for n3x
 
-This directory contains NixOS configurations for physical K3s cluster nodes and VM test environments. NixOS provides declarative, reproducible host infrastructure using composable modules.
+This directory contains the NixOS backend for the n3x K3s cluster platform. NixOS provides declarative, reproducible system configurations using composable modules.
 
 ## Architecture
 

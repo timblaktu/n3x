@@ -6,7 +6,7 @@ This file provides project-specific rules and essential context for Claude Code 
 
 ### Git Commit Practices
 1. **COMMIT FREQUENTLY** - Don't accumulate changes across multiple files before committing. Commit each logical change as you make it. Small, frequent commits are better than large batches. This also serves as implicit flake verification (see rule 3).
-2. **Committing IS your flake check** - The Nix-managed pre-commit hook (`core.hooksPath`) runs `nix flake check --no-build` automatically. Do NOT run `nix flake check` manually before committing — just commit and let the hook verify. If the commit succeeds, the flake is valid. If the hook fails, fix and re-commit. The hook also auto-formats `.nix` files with `nixpkgs-fmt` and re-stages them. The hook args are not immutable — if a better approach is found, update the hook in nixcfg.
+2. **Committing IS your flake check** - The Nix-managed pre-commit hook (`core.hooksPath`) runs `nix flake check --no-build` automatically. Do NOT run `nix flake check` manually before committing — just commit and let the hook verify. If the commit succeeds, the flake is valid. If the hook fails, fix and re-commit. The hook also auto-formats `.nix` files with `nixpkgs-fmt` and re-stages them. The hook args are not immutable — if a better approach is found, update the hook in nixcfg. **For doc-only commits**, skip the hook with `SKIP_FLAKE_CHECK=1 git commit -m "message"` to avoid the ~2min eval time.
 3. **NEVER include AI/Claude attributions in commits** - No "Co-Authored-By: Claude", no "Generated with Claude", no Anthropic mentions.
 4. **Do NOT commit temporary files** - Never stage files created for temporary purposes.
 
@@ -18,11 +18,8 @@ This file provides project-specific rules and essential context for Claude Code 
 7. **NEVER defer tests for perceived redundancy** - This project establishes a parameterized embedded Linux build matrix. Every test that exists for one backend MUST be run for all backends. Do NOT make judgment calls about "overlapping" tests or "same code path" - run ALL tests to verify actual parity. The goal is identical test coverage across NixOS and Debian backends.
 8. **Test parity is non-negotiable** - If NixOS has a test (simple, vlans, bonding-vlans, dhcp-simple), the Debian backend must have and pass the same test. No exceptions.
 
-### Shell Command Practices
-9. **ALWAYS single-quote Nix derivation references** - Use `nix build '.#thing'` to prevent zsh globbing.
-
 ### Container Image Pinning
-10. **Use `tag@digest` syntax for container images** - Provides determinism (digest) + visibility (tag):
+9. **Use `tag@digest` syntax for container images** - Provides determinism (digest) + visibility (tag):
    ```yaml
    # CORRECT: tag for humans, digest for machines
    image: ghcr.io/siemens/kas/kas-isar:5.1@sha256:c60d32d7d6943e114affad0f8a0e9ec6d4c163e636c84da2dd8bde7a39f2a9bd
@@ -35,13 +32,20 @@ This file provides project-specific rules and essential context for Claude Code 
    - Get digest: `docker images --digests <image>`
 
 ### NixOS Test Driver & QEMU Process Management
-11. **Orphaned nix build cleanup** - Prefer SIGTERM over SIGKILL (WSL mount safety):
+10. **Orphaned nix build cleanup** - Prefer SIGTERM over SIGKILL (WSL mount safety):
    ```bash
    sudo kill -TERM <pid>; sleep 5; sudo kill -INT <pid>  # SIGKILL only as last resort
    ```
    If mounts break: `nix run '.#wsl-remount'` or `wsl --shutdown`
 
-12. **PROACTIVE log monitoring** - Use `-L` flag, check BashOutput frequently, kill early on failure patterns.
+11. **PROACTIVE log monitoring** - Use `-L` flag, check BashOutput frequently, kill early on failure patterns.
+
+12. **VM test parallelism limits** - Each VM uses 1-4 vCPUs + 1-4GB RAM. Limit concurrent VMs to avoid CPU saturation:
+   - **Single-VM tests** (L1-L3: vm-boot, server-boot, service, network-*, swupdate-*): Up to 4 tests in parallel
+   - **Two-VM tests** (L2: two-vm-network): Up to 2 tests in parallel
+   - **Cluster tests** (L4: cluster-*): Run at most 2 in parallel (4 VMs total), prefer sequential
+   - **Bonding cluster tests**: Run ONE at a time (each VM has bond + VLANs, heavy on CPU)
+   - Evidence: cluster-bonding-vlans-direct took 86s solo vs 326s when 3 cluster tests ran simultaneously
 
 13. **Session cleanup** - Verify no orphaned processes before new tests:
    ```bash
@@ -72,9 +76,7 @@ nix build '.#checks.x86_64-linux.k3s-cluster-simple.driverInteractive'
 
 ## Project Status
 
-- **Release**: 0.0.2 (tagged, published with release notes)
-- **Plan 034**: Dev Environment Validation — COMPLETE — `.claude/user-plans/034-dev-environment-and-adoption.md`
-- **Plan 033**: CI Pipeline Refactoring — COMPLETE (T8 deferred) — `.claude/user-plans/033-ci-pipeline-refactoring.md`
+- **Release**: 0.0.3 (tagged, published with release notes)
 - **Test Infrastructure**: Fully integrated NixOS + Debian backends, 16-test parity matrix
 - **BitBake Limits**: BB_NUMBER_THREADS=dynamic (min(CPUs, (RAM_GB-4)/3)), BB_PRESSURE_MAX_MEMORY=10000
 - **ISAR Build Matrix**: 42 artifacts across 4 machines (qemuamd64, amd-v3c18i, qemuarm64, jetson-orin-nano)
@@ -90,10 +92,16 @@ nix build '.#checks.x86_64-linux.k3s-cluster-simple.driverInteractive'
 - KVM-accelerated VM tests on GitHub-hosted runners
 - `magic-nix-cache-action` for Nix store caching
 
-**Target CI Architecture** (future, see `docs/nix-binary-cache-architecture-decision.md`):
-- Self-managed EC2 runners (x86_64 + Graviton) for ISAR/Nix builds
-- On-prem NixOS bare metal for: VM tests (KVM required), HIL tests
-- Harmonia + ZFS binary cache, Caddy reverse proxy with internal CA
+### AI Agent Architecture (2026-02-26)
+
+**Design principle**: Project provides context and procedures, users provide tools and credentials.
+
+**Cross-tool compatibility**:
+- `CLAUDE.md` is the universal project instructions file (Claude Code reads natively, OpenCode reads as fallback)
+- `.ai/skills/` is the single source of truth for shared procedures, with symlinks from `.claude/skills/` and `.opencode/agents/`
+- `.claude/rules/` and `.opencode/rules/` are extension points for the internal fork to add context without modifying public files
+
+**Internal fork additive pattern**: The fork ONLY adds files — never modifies public repo files. Extension directories (`.claude/rules/`, `.opencode/rules/`) are empty on the public repo and populated on the fork with `internal-context.md`. The fork's `opencode.json` is the one intentional divergence (model endpoint configuration).
 
 ### ISAR Package Parity
 
@@ -251,32 +259,31 @@ nix develop -c bash -c "cd backends/debian && kas-container --isar cleansstate k
 nix develop -c bash -c "cd backends/debian && kas-container --isar cleanall kas/machine/<machine>.yml:..."
 ```
 
+**Stale `.git-downloads` symlink** (common issue):
+- Each kas-container session creates a new tmpdir (`/tmp/tmpXXXXXX`); `.git-downloads` symlink in the build work dir points to the previous session's tmpdir
+- **Fix**: Remove before EVERY new build after a container session change:
+  ```bash
+  rm -f backends/debian/build/tmp/work/debian-trixie-arm64/.git-downloads
+  rm -f backends/debian/build/tmp/work/debian-trixie-amd64/.git-downloads
+  ```
+
+**Download cache collision** (multi-arch):
+- k3s recipe uses `downloadfilename=k3s` for BOTH architectures — x86_64 and arm64 binaries share the same cache key
+- If switching architectures (e.g., qemuamd64 → jetson-orin-nano), the cached `k3s` binary is the wrong architecture
+- **Fix**: Delete the cached binary AND its fetch stamps:
+  ```bash
+  rm -f ~/.cache/yocto/downloads/k3s ~/.cache/yocto/downloads/k3s.done
+  rm -f backends/debian/build/tmp/stamps/debian-trixie-arm64/k3s-server/1.32.0-r0.do_fetch*
+  rm -f backends/debian/build/tmp/stamps/debian-trixie-arm64/k3s-agent/1.32.0-r0.do_fetch*
+  ```
+- TODO: Fix k3s recipe to use arch-specific `downloadfilename` (e.g., `k3s-arm64` or `k3s-amd64`)
+
 ### ISAR Build Cache
-- The kas-build wrapper (flake.nix) exports `DL_DIR` and `SSTATE_DIR` with defaults of `~/.cache/yocto/{downloads,sstate}`
+- Shared cache: `DL_DIR="${HOME}/.cache/yocto/downloads"`, `SSTATE_DIR="${HOME}/.cache/yocto/sstate"`
 - kas-container mounts these host paths at `/downloads` and `/sstate` inside the container
 - base.yml hardcodes `DL_DIR = "/downloads"` and `SSTATE_DIR = "/sstate"` (the stable mount points)
 - **WARNING**: Do NOT use `${HOME}` in kas `local_conf_header` — inside the container, kas overrides HOME to an ephemeral tmpdir (`/tmp/tmpXXXXXX`), so any path referencing `${HOME}` is destroyed on exit (siemens/kas#148)
 - CI sets its own `DL_DIR`/`SSTATE_DIR` values which the wrapper respects via `${VAR:-default}` pattern
-
-### ZFS Replication Limitations
-
-**ZFS does NOT support multi-master replication.** Key findings:
-- `zfs send/recv` requires single-master topology (one writer, read-only replicas)
-- If both source and destination have written past the last shared snapshot, they've "diverged" and cannot be merged
-- Tools like zrep/zrepl are active-passive with failover, not simultaneous read-write
-
-**For Nix binary caches with multiple active builders:**
-- Use HTTP substituters instead of ZFS replication
-- Each node: independent ZFS-backed `/nix/store` (for compression benefits)
-- Each node: Harmonia serving local store
-- Before building, Nix queries all substituters; downloads if found, builds if not
-- Nix's content-addressing prevents conflicts (same derivation = same store path)
-
-**ZFS value without replication:**
-- zstd compression: 1.5-2x savings (500GB → 750-1000GB effective)
-- Checksumming: Detects bit rot
-- Snapshots: Pre-GC safety, instant rollback
-- ARC cache: Intelligent read caching
 
 ### Test Timing Patterns
 
@@ -306,6 +313,21 @@ server_2.succeed("systemctl start k3s-server.service")
 **Resolved latent issues**:
 - Bond state verification via `/proc/net/bonding/bond0`
 - Replaced `time.sleep(2)` with `wait_until_succeeds` IP polling
+
+### SWUpdate Apply Test Flakiness (2026-02-27)
+
+**Symptom**: `debian-test-swupdate-apply` fails intermittently in CI at Test 6 — `swupdate -v -k cert.pem -i update-bundle.swu` exits with code 1. Passes on retry and on concurrent workflow runs for the same commit.
+
+**Root cause**: Race between grubenv creation and swupdate invocation. SWUpdate's GRUB handler opens `/boot/grub/grubenv` immediately on startup. Under I/O contention on GitHub-hosted runners, the file may not be fully flushed to disk when swupdate reads it, causing an exit code 1.
+
+**Fix applied** (all 3 swupdate tests):
+1. Extracted `run_with_retry()` utility into `tests/lib/test-scripts/utils.nix` — shared across all tests
+2. Added `sync` to grubenv creation command chains
+3. Uses `machine.execute()` (not `succeed()`) to preserve diagnostic output on failure
+4. 3-attempt retry with 2s delay, 1s settle time for filesystem sync before first attempt
+5. Applied consistently to: `swupdate-apply.nix`, `swupdate-boot-switch.nix`, `swupdate-network-ota.nix`
+
+**First observed**: PR #13 CI run `22493486475`, job `65161686503`. Passed on retry (same run) and on parallel run `22493473680`.
 
 ### WIC Generation Hang (WSL2)
 - Cause: `sgdisk` sync() hangs on 9p mounts
@@ -354,14 +376,7 @@ ISAR kernel selection uses `KERNEL_NAME`:
   correct `systemd-binfmt.service` registration with POCF flags at boot. No manual registration needed.
   See `docs/binfmt-requirements.md` for details.
 
-### AWS AMI Registration (register-ami.sh)
-
-- AWS `register-image --architecture` accepts `x86_64` or `arm64` (NOT `aarch64`)
-- Script maps: `--arch aarch64` → `AWS_ARCH="arm64"` for the API call
-- Uses `jq` (not python3) for JSON parsing — lighter dependency
-- EXIT trap handles S3 cleanup on script failure
-
-### Infra Flake Input Management
+### Flake Input Management
 
 - **nixos-generators**: Archived 2026-01-30, upstreamed to nixpkgs 25.05.
   **Removed as flake input** (2026-02-16): initially replaced with manual
@@ -375,12 +390,10 @@ ISAR kernel selection uses `KERNEL_NAME`:
   deferred module pattern cleanly separates image-specific config from base config.
 - **nixos-anywhere**: Not needed as a flake input — run from upstream flake directly.
   Was adding 14 transitive lock entries including a separate nixpkgs tree.
-- **Caddyfile v2 syntax**: Use named matchers (`@name path /...`) for path-specific
-  headers, not nested `{path ...}` inside header values.
 
 ### NixOS 25.11 Migration Workarounds
 
-**Migration date**: 2026-02-16. Both flakes migrated from nixpkgs master (main) / 24.11 (infra) to 25.11.
+**Migration date**: 2026-02-16. Migrated from nixpkgs master (main) to 25.11.
 
 1. **`services.resolved.settings` → individual options** (commit `ffbedba`)
    - `services.resolved.settings.Resolve` is a master-only freeform attrset API, not on 25.11
@@ -401,10 +414,74 @@ ISAR kernel selection uses `KERNEL_NAME`:
    - Fork: `timblaktu/nixpkgs/vm-bootloader-disk-size` rebased onto `nixos-25.11`
    - TODO: Submit upstream PR to nixpkgs, then drop fork
 
-4. **gitlab-runner `authenticationTokenConfigFile`** (commit `53f7032`)
-   - `registrationConfigFile` deprecated in GitLab 16.0+, removed in 18.0
-   - File: `infra/nixos-runner/modules/gitlab-runner.nix`
-   - Added new option + mutual exclusion assertion. Both old and new work.
+### README Documentation and Diagram Conventions (2026-03-01)
+
+**Messaging priorities** (from user directive):
+- Don't assume team familiarity with prior projects — the docs are fresh onboarding
+- Diagrams should send clear conceptual messages WITHOUT the viewer reading prose
+- Primary message: this framework automatically tests your images in virtual networks
+- The "BYO" concept is central: users bring their BSP/OS backend, n3x provides testing infra
+
+**Diagram format**: ALWAYS use DrawIO `.drawio.svg` format, NEVER Mermaid:
+- Mermaid multiline text is unreliable, layout is non-deterministic, feedback loop too slow
+- DrawIO gives deterministic layout; `drawio-svg-sync` renders SVG that Claude can visually verify
+- After rendering, always read the SVG to catch label overlaps and positioning issues
+
+**Full-stack emulation diagram concept** (user directive, 2026-03-01):
+- The diagram must depict building a **local virtual private cloud** using open-source hyper-converged infrastructure techniques — this framing resonates with the team
+- Show EXACTLY ONE test scenario (corresponding to one "high-level nix derivation")
+- Multiple VMs exist WITHIN the SDN (software-defined network), like cloud VPS/VPC instances
+- The network is an **environment-level** concept, not a cluster-level concept
+- The single-VM layer stack (firmware→kernel→userspace→k3s→k8s) should be present but **compact** — not dominating the diagram
+- Show the virtual network as you would in any cloud architecture diagram
+- Cross-layer interactions (SWUpdate firmware↔userspace, GPIO power-cycling) are annotations
+
+**Firmware layer terminology**:
+- Say "UEFI/EDK2" not "BIOS/UEFI"
+- Say "u-boot / GRUB / systemd-boot" not "GRUB2"
+- Layer title: "Firmware" not "Firmware / Bootloader"
+
+**DrawIO rounded rectangle labels**: Per the diagram skill (Section 18), ALWAYS calculate
+the corner offset using `offset = max(0.15 * min(w, h) * 0.35, 15)` and position container
+title labels inside this offset to avoid overlapping the rounded edge.
+
+### DrawIO `.drawio.svg` Workflow for Claude Code (2026-03-01)
+
+**Primary workflow**: Use `drawio_gen.py` (deployed to skills/diagram/) to generate diagrams
+from compact JSON specs instead of constructing mxGraphModel XML inline. This reduces output
+token usage by ~87% per diagram.
+
+```bash
+# Generate from JSON spec (pipe or --input)
+echo '{"page":{...},"cells":[...]}' | python3 "$SKILL_DIR/drawio_gen.py" generate --output diagram.drawio.svg --render
+
+# Utility subcommands
+python3 "$SKILL_DIR/drawio_gen.py" extract diagram.drawio.svg    # decode content attr
+python3 "$SKILL_DIR/drawio_gen.py" verify diagram.drawio.svg     # check integrity
+python3 "$SKILL_DIR/drawio_gen.py" presets                       # list style presets
+```
+
+Where `$SKILL_DIR` is the deployed skill directory (e.g., `~/.claude-max/skills/diagram/`).
+The `--render` flag runs drawio-svg-sync, re-injects content if stripped, and verifies.
+See diagram skill Section 31 for JSON spec format, cell types, and preset reference.
+
+**Rendering command** (manual): `nix run 'github:timblaktu/drawio-svg-sync' -- docs/diagrams/DIAGRAM.drawio.svg`
+
+**Project-specific orphan status** (as of 2026-03-01): Both `n3x-full-stack-emulation.drawio.svg` and `n3x-overview.drawio.svg` have been rebuilt with `content` attributes (commits bd489e4 and 8aec68b respectively). All 8 diagrams now have embedded source. Both hero diagrams have uncommitted refinements (color-scheme fix, text/edge styling) awaiting further user feedback.
+
+### Overview Diagram Revision Status (2026-03-01)
+
+**User feedback on T13 (commit 9f35253)**: The "Test Scenario" tier and "n3x / shared layer" are the same concept and should be merged into a single "Nix Derivations" block at the top. The diagram must show:
+1. Nix derivation outputs and which backends consume them
+2. Backend-specific outputs (systemd.network modules for NixOS, .network/.netdev files for Debian)
+3. Generic outputs (k3s CLI flags for both, backend-agnostic test runners)
+4. The parity message: define once in Nix → produce backend-specific outputs → converge at tests
+
+**README first section (user-revised text, 2026-03-01)**: The heading and first two
+paragraphs were manually revised by the user — do not overwrite. Key changes:
+- Heading: "Develop K3s Clusters on Custom Hardware with BYO BSP + OS"
+- Inline links to `./backends`, `./backends/debian`, `./backends/nixos`
+- Specific tool links: kas, ISAR, NixOS
 
 ### Key Files
 - `lib/network/mk-network-config.nix` - Unified NixOS module generator
@@ -418,6 +495,4 @@ ISAR kernel selection uses `KERNEL_NAME`:
 - [docs/ISAR-L4-TEST-ARCHITECTURE.md](docs/ISAR-L4-TEST-ARCHITECTURE.md) - ISAR L4 cluster test design
 - [docs/binfmt-requirements.md](docs/binfmt-requirements.md) - Cross-architecture binfmt_misc requirements
 - [docs/nix-binary-cache-architecture-decision.md](docs/nix-binary-cache-architecture-decision.md) - Binary cache ADR
-- [.claude/user-plans/034-dev-environment-and-adoption.md](.claude/user-plans/034-dev-environment-and-adoption.md) - Dev environment validation and team adoption plan
-- [.claude/user-plans/033-ci-pipeline-refactoring.md](.claude/user-plans/033-ci-pipeline-refactoring.md) - CI pipeline refactoring plan
 - ALWAYS ask before adding packages to ISAR images

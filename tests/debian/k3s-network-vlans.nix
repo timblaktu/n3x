@@ -69,9 +69,10 @@ let
       server.wait_for_unit("systemd-networkd.service", timeout=60)
       tlog("  systemd-networkd is active")
 
-      # Give networkd time to create VLAN interfaces
-      import time
-      time.sleep(3)
+      # Wait for networkd to create VLAN interfaces
+      server.wait_until_succeeds("ip link show eth1.200", timeout=30)
+      server.wait_until_succeeds("ip link show eth1.100", timeout=30)
+      tlog("  VLAN interfaces created")
 
       # Check if 8021q module is loaded
       log_section("MODULE", "8021Q VLAN Module")

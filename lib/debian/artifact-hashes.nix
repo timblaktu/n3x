@@ -12,79 +12,79 @@
   # =========================================================================
   # qemuamd64 - base
   # =========================================================================
-  "isar-base-qemuamd64.wic" = "0b5lk30580zn40d2nvl27hb47dgsl3scr1610pi19ima3q7lq76j";
-  "isar-base-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-base-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-base-qemuamd64.wic" = "04msdl5d14rjgn0c3sscg8kxxarfs550ba81hb2s4d4zlgv9v8mn";
+  "isar-base-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-base-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - base-swupdate
   # =========================================================================
-  "isar-base-swupdate-qemuamd64.wic" = "0iz7j1xp2zamsms4pwmh145n49z655b9jgb2536pkhqjznbnaqv7";
-  "isar-base-swupdate-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-base-swupdate-qemuamd64-initrd.img" = "1hxwy6cx1k64mma0b6xldkvyy1xb3zdzj2m5x3kq0pv8c1ndza2g";
+  "isar-base-swupdate-qemuamd64.wic" = "1mlrlb5lidw19g92lw0bdxz7640l5zvr53as8hvzv5dk6mq3s6cq";
+  "isar-base-swupdate-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-base-swupdate-qemuamd64-initrd.img" = "1v1gyjz71c70x9b2qppvw2wq8xmr4xq5dglf95flgcmccmy68qgp";
 
   # =========================================================================
   # qemuamd64 - agent
   # =========================================================================
-  "isar-agent-qemuamd64.wic" = "044kk8vm07d6lpcn04xj20lqhzb1p5k677pyb5k8kzmbxaqxmh2x";
-  "isar-agent-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-agent-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-agent-qemuamd64.wic" = "100xmr555y1igwyijyyhbn1xj575ynillkny3rp0bpyxiz5j6ccn";
+  "isar-agent-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-agent-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - server-simple-server-1
   # =========================================================================
-  "isar-server-simple-server-1-qemuamd64.wic" = "0qbic16yzvr501qafmj2393cib6fzpavqrm36hk32k96mfd6gx4s";
-  "isar-server-simple-server-1-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-simple-server-1-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-server-simple-server-1-qemuamd64.wic" = "0szpm5bxljdp58f2v1gpbyy0ga71f7zgmnccm2q91079354v7wa5";
+  "isar-server-simple-server-1-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-simple-server-1-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - server-simple-server-2
   # =========================================================================
-  "isar-server-simple-server-2-qemuamd64.wic" = "1as6l2p1s3wq8xl3n5kvyvc2ay8m0hq202ml55x54zpj5r2ppqf0";
-  "isar-server-simple-server-2-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-simple-server-2-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-server-simple-server-2-qemuamd64.wic" = "0011n8mjj1xrbkrdx0p5x07wh2q3n7wiacla797vy1mfhd6w4hzq";
+  "isar-server-simple-server-2-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-simple-server-2-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - server-vlans-server-1
   # =========================================================================
-  "isar-server-vlans-server-1-qemuamd64.wic" = "03aqjqdch7rkby3qpb0xf1clss57wvdycmp3w0kh84afpfh0hnj4";
-  "isar-server-vlans-server-1-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-vlans-server-1-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-server-vlans-server-1-qemuamd64.wic" = "169q6xjvms8h39lpzylimgji9m08axnkb5mmz79cp15ww3c6p9wm";
+  "isar-server-vlans-server-1-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-vlans-server-1-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - server-vlans-server-2
   # =========================================================================
-  "isar-server-vlans-server-2-qemuamd64.wic" = "0pq78d398dzcdh8zpgvlp7bl8141nimmbc360zmvwvbigzrfqnb8";
-  "isar-server-vlans-server-2-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-vlans-server-2-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-server-vlans-server-2-qemuamd64.wic" = "030g7r38d8zx6vj70qz11b2lrvyhvaaxr0vl05n9gsa7b05wqidr";
+  "isar-server-vlans-server-2-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-vlans-server-2-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - server-bonding-vlans-server-1
   # =========================================================================
-  "isar-server-bonding-vlans-server-1-qemuamd64.wic" = "0gw5wya5mgw16pjxmrqlgi2y3b3kd4vdgy8zmv813n8sk5n02h7c";
-  "isar-server-bonding-vlans-server-1-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-bonding-vlans-server-1-qemuamd64-initrd.img" = "13yc11v0cxjxgmgh9l89sfps6a045kyyidjw25cmallrlkyzfiwp";
+  "isar-server-bonding-vlans-server-1-qemuamd64.wic" = "0qygp4mvb9x6yl74rksi74wlpfyxadf7q0bccakjc3h32kwp57s9";
+  "isar-server-bonding-vlans-server-1-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-bonding-vlans-server-1-qemuamd64-initrd.img" = "133wa0g4d03i1icxy29w4sqb7slg9j9svgp3c1h0c1bl8vn7c8m7";
 
   # =========================================================================
   # qemuamd64 - server-bonding-vlans-server-2
   # =========================================================================
-  "isar-server-bonding-vlans-server-2-qemuamd64.wic" = "1s34528jsip3qlbzcrxsa262vwx3hvl7ifihqc5ab8jyhlbyr9dp";
-  "isar-server-bonding-vlans-server-2-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-bonding-vlans-server-2-qemuamd64-initrd.img" = "13yc11v0cxjxgmgh9l89sfps6a045kyyidjw25cmallrlkyzfiwp";
+  "isar-server-bonding-vlans-server-2-qemuamd64.wic" = "0i8x894bs8i9rlaqx6qsxpxgccc0c37k7qlf823j4l5dsgwlji97";
+  "isar-server-bonding-vlans-server-2-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-bonding-vlans-server-2-qemuamd64-initrd.img" = "133wa0g4d03i1icxy29w4sqb7slg9j9svgp3c1h0c1bl8vn7c8m7";
 
   # =========================================================================
   # qemuamd64 - server-dhcp-simple-server-1
   # =========================================================================
-  "isar-server-dhcp-simple-server-1-qemuamd64.wic" = "14d64qa1a1g3fpj380965v516v4xh41bzbrxakhfz60zly4a0cqf";
-  "isar-server-dhcp-simple-server-1-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-dhcp-simple-server-1-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-server-dhcp-simple-server-1-qemuamd64.wic" = "0c6diradlmn9shvy3cdk8wiq0129jz2316484rrmlbpfxkzqz634";
+  "isar-server-dhcp-simple-server-1-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-dhcp-simple-server-1-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuamd64 - server-dhcp-simple-server-2
   # =========================================================================
-  "isar-server-dhcp-simple-server-2-qemuamd64.wic" = "0q1avjrbk7aw44fdg4pby2ll5ff5n0x29lwlbfn35440prv78mdn";
-  "isar-server-dhcp-simple-server-2-qemuamd64-vmlinuz" = "17nvnhvxr84r3210749ivlwa2qvgpjpjzj42kssy1bh02wzqrcg3";
-  "isar-server-dhcp-simple-server-2-qemuamd64-initrd.img" = "0ca2sifbymwjq9an4nvfynqn36jymnd2izbgw1is89hxb5j3dcvi";
+  "isar-server-dhcp-simple-server-2-qemuamd64.wic" = "02wczm3k2v9hxanxaxdcgbxjmj8c04dc1g8xy3ljg0p781la8cyn";
+  "isar-server-dhcp-simple-server-2-qemuamd64-vmlinuz" = "1b2hn9n5sb5aqs3jh36q27qxyv4732nma9cx5zhipg2mw7yijr3a";
+  "isar-server-dhcp-simple-server-2-qemuamd64-initrd.img" = "14hl1x8rlgdli3cl7z5lfv58vgb8mmsihv7mr6y3v6q03jmzjj1r";
 
   # =========================================================================
   # qemuarm64 - base (Orin emulation profile — WIC images)

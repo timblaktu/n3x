@@ -261,7 +261,7 @@ Common issues:
 ## Related Documentation
 
 - [Test Framework README](../tests/README.md) - NixOS test driver usage and test catalog
-- [jetson-orin-ota-guide-revised.md](jetson-orin-ota-guide-revised.md) - Full OTA reference including Jetson-specific nvbootctrl
+- [jetson-swupdate-and-ota.md](jetson-swupdate-and-ota.md) - Full OTA reference including SWUpdate, nv_update_engine, and Jetson integration
 
 ## Test File Reference
 

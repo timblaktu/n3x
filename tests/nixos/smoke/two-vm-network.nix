@@ -17,6 +17,10 @@
 
 { pkgs, lib, ... }:
 
+let
+  testScripts = import ../../lib/test-scripts { inherit lib; };
+in
+
 pkgs.testers.runNixOSTest {
   name = "smoke-two-vm-network";
 
@@ -46,44 +50,37 @@ pkgs.testers.runNixOSTest {
   };
 
   testScript = ''
+    ${testScripts.utils.all}
     import time
     start = time.time()
 
-    print("=" * 60)
-    print("SMOKE TEST: Two VM Network")
-    print("=" * 60)
+    log_section("SMOKE TEST", "Two VM Network")
 
     # Start both VMs in parallel
-    print("\n[1/5] Starting both VMs...")
+    tlog("[1/4] Starting both VMs...")
     vm1.start()
     vm2.start()
 
     # Wait for boot
-    print("[2/5] Waiting for VMs to boot...")
+    tlog("[2/4] Waiting for VMs to boot...")
     vm1.wait_for_unit("multi-user.target", timeout=30)
     vm2.wait_for_unit("multi-user.target", timeout=30)
-    print("  Both VMs booted")
+    tlog("  Both VMs booted")
 
     # Check IPs are configured
-    print("[3/5] Verifying IP configuration...")
+    tlog("[3/4] Verifying IP configuration...")
     vm1.succeed("ip addr show eth1 | grep 192.168.1.1")
     vm2.succeed("ip addr show eth1 | grep 192.168.1.2")
-    print("  IPs configured correctly")
+    tlog("  IPs configured correctly")
 
-    # Give VDE switch a moment to learn MAC addresses
-    print("[4/5] Waiting for network to settle...")
-    time.sleep(2)
-
-    # Test connectivity
-    print("[5/5] Testing connectivity...")
-    vm1.succeed("ping -c 1 -W 5 192.168.1.2")
-    print("  vm1 -> vm2: OK")
-    vm2.succeed("ping -c 1 -W 5 192.168.1.1")
-    print("  vm2 -> vm1: OK")
+    # Test connectivity (wait_until_succeeds handles VDE switch MAC learning)
+    tlog("[4/4] Testing connectivity...")
+    vm1.wait_until_succeeds("ping -c 1 -W 5 192.168.1.2", timeout=15)
+    tlog("  vm1 -> vm2: OK")
+    vm2.wait_until_succeeds("ping -c 1 -W 5 192.168.1.1", timeout=15)
+    tlog("  vm2 -> vm1: OK")
 
     elapsed = time.time() - start
-    print(f"\n{'=' * 60}")
-    print(f"SMOKE TEST PASSED in {elapsed:.1f}s")
-    print(f"{'=' * 60}")
+    tlog(f"SMOKE TEST PASSED in {elapsed:.1f}s")
   '';
 }

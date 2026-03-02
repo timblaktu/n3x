@@ -158,169 +158,161 @@ let
       };
     };
 
-    testScript = ''
-      import os
+    testScript =
+      let
+        utils = import ../lib/test-scripts/utils.nix;
+        bootPhase = import ../lib/test-scripts/phases/boot.nix { inherit lib; };
+      in
+      ''
+        ${utils.all}
 
-      # Wait for VM to boot
-      testvm.wait_for_unit("nixos-test-backdoor.service")
-      print("VM booted successfully")
+        ${bootPhase.debian.bootWithBackdoor { node = "testvm"; displayName = "SWUpdate validation VM"; }}
 
-      # ===== Test 1: Verify SWUpdate is installed =====
-      print("\n" + "=" * 60)
-      print("Test 1: Verify SWUpdate installation")
-      print("=" * 60)
+        # ===== Test 1: Verify SWUpdate is installed =====
+        log_section("TEST 1", "Verify SWUpdate installation")
 
-      swupdate_version = testvm.succeed("swupdate --version 2>&1 || true")
-      print(f"SWUpdate version: {swupdate_version}")
+        swupdate_version = testvm.succeed("swupdate --version 2>&1 || true")
+        tlog(f"SWUpdate version: {swupdate_version}")
 
-      testvm.succeed("which swupdate")
-      testvm.succeed("test -f /etc/swupdate.cfg")
-      print("SWUpdate installation verified")
+        testvm.succeed("which swupdate")
+        testvm.succeed("test -f /etc/swupdate.cfg")
+        tlog("SWUpdate installation verified")
 
-      # Show configuration
-      print("\nSWUpdate configuration:")
-      config = testvm.succeed("cat /etc/swupdate.cfg")
-      print(config)
+        # Show configuration
+        tlog("SWUpdate configuration:")
+        config = testvm.succeed("cat /etc/swupdate.cfg")
+        tlog(config)
 
-      # ===== Test 2: Verify A/B partition layout =====
-      print("\n" + "=" * 60)
-      print("Test 2: Verify A/B partition layout")
-      print("=" * 60)
+        # ===== Test 2: Verify A/B partition layout =====
+        log_section("TEST 2", "Verify A/B partition layout")
 
-      # Check partition labels
-      blkid = testvm.succeed("blkid")
-      print(f"Block devices:\n{blkid}")
+        # Check partition labels
+        blkid = testvm.succeed("blkid")
+        tlog(f"Block devices:\n{blkid}")
 
-      # Verify expected partitions exist
-      testvm.succeed("blkid | grep -i 'LABEL=\"APP\"'")
-      testvm.succeed("blkid | grep -i 'LABEL=\"APP_b\"'")
-      testvm.succeed("blkid | grep -i 'LABEL=\"data\"'")
-      print("A/B partition layout verified: APP, APP_b, data partitions present")
+        # Verify expected partitions exist
+        testvm.succeed("blkid | grep -i 'LABEL=\"APP\"'")
+        testvm.succeed("blkid | grep -i 'LABEL=\"APP_b\"'")
+        testvm.succeed("blkid | grep -i 'LABEL=\"data\"'")
+        tlog("A/B partition layout verified: APP, APP_b, data partitions present")
 
-      # ===== Test 3: Copy and validate test bundle =====
-      print("\n" + "=" * 60)
-      print("Test 3: Bundle structure validation")
-      print("=" * 60)
+        # ===== Test 3: Copy and validate test bundle =====
+        log_section("TEST 3", "Bundle structure validation")
 
-      # Copy test bundle to VM
-      # The bundle is available via the store path mounted in the test environment
-      testvm.succeed("mkdir -p /tmp/bundles")
+        # Copy test bundle to VM
+        # The bundle is available via the store path mounted in the test environment
+        testvm.succeed("mkdir -p /tmp/bundles")
 
-      # We'll create the bundle content directly on the VM since 9p sharing
-      # can be tricky with cpio format
-      testvm.succeed(
-          "cd /tmp/bundles && "
-          "echo 'Test rootfs payload for SWUpdate validation' > test-payload.txt && "
-          "tar -czf rootfs.tar.gz test-payload.txt && "
-          "ROOTFS_SHA256=$(sha256sum rootfs.tar.gz | cut -d' ' -f1) && "
-          "printf '%s\\n' "
-          "'software = {' "
-          "'  version = \"test-1.0.0\";' "
-          "'  hardware-compatibility = [ \"n3x\" ];' "
-          "'  images: (' "
-          "'    {' "
-          "'      filename = \"rootfs.tar.gz\";' "
-          "'      type = \"archive\";' "
-          "'      path = \"/tmp/swupdate-test\";' "
-          "'      sha256 = \"'\"$ROOTFS_SHA256\"'\";' "
-          "'      compressed = \"zlib\";' "
-          "'    }' "
-          "'  );' "
-          "'};' > sw-description && "
-          "(echo sw-description; ls -1 | grep -v sw-description) | cpio -o -H crc > test-bundle.swu && "
-          "echo 'Bundle created successfully'"
-      )
+        # We'll create the bundle content directly on the VM since 9p sharing
+        # can be tricky with cpio format
+        testvm.succeed(
+            "cd /tmp/bundles && "
+            "echo 'Test rootfs payload for SWUpdate validation' > test-payload.txt && "
+            "tar -czf rootfs.tar.gz test-payload.txt && "
+            "ROOTFS_SHA256=$(sha256sum rootfs.tar.gz | cut -d' ' -f1) && "
+            "printf '%s\\n' "
+            "'software = {' "
+            "'  version = \"test-1.0.0\";' "
+            "'  hardware-compatibility = [ \"n3x\" ];' "
+            "'  images: (' "
+            "'    {' "
+            "'      filename = \"rootfs.tar.gz\";' "
+            "'      type = \"archive\";' "
+            "'      path = \"/tmp/swupdate-test\";' "
+            "'      sha256 = \"'\"$ROOTFS_SHA256\"'\";' "
+            "'      compressed = \"zlib\";' "
+            "'    }' "
+            "'  );' "
+            "'};' > sw-description && "
+            "(echo sw-description; ls -1 | grep -v sw-description) | cpio -o -H crc > test-bundle.swu && "
+            "echo 'Bundle created successfully'"
+        )
 
-      # List created bundle
-      bundle_info = testvm.succeed("ls -la /tmp/bundles/")
-      print(f"Created bundle:\n{bundle_info}")
+        # List created bundle
+        bundle_info = testvm.succeed("ls -la /tmp/bundles/")
+        tlog(f"Created bundle:\n{bundle_info}")
 
-      # ===== Test 4: Validate bundle with swupdate -c =====
-      print("\n" + "=" * 60)
-      print("Test 4: SWUpdate bundle validation (dry-run)")
-      print("=" * 60)
+        # ===== Test 4: Validate bundle with swupdate -c =====
+        log_section("TEST 4", "SWUpdate bundle validation (dry-run)")
 
-      # Use -c flag to check/validate without applying
-      # Note: swupdate -c validates bundle structure and checksums
-      result = testvm.execute("swupdate -c -i /tmp/bundles/test-bundle.swu -v 2>&1")
-      exit_code = result[0]
-      output = result[1]
-      print(f"Validation exit code: {exit_code}")
-      print(f"Validation output:\n{output}")
+        # Use -c flag to check/validate without applying
+        # Note: swupdate -c validates bundle structure and checksums
+        result = testvm.execute("swupdate -c -i /tmp/bundles/test-bundle.swu -v 2>&1")
+        exit_code = result[0]
+        output = result[1]
+        tlog(f"Validation exit code: {exit_code}")
+        tlog(f"Validation output:\n{output}")
 
-      # swupdate -c should succeed (exit 0) for valid bundle
-      if exit_code != 0:
-          # Check for signed image requirement (security feature)
-          if "built for signed images" in output.lower() or "public key" in output.lower():
-              print("Note: SWUpdate requires signed bundles (security feature enabled)")
-              print("This is expected for production images - bundle signing will be tested separately")
-              print("Validation test PASSED: SWUpdate correctly enforces signature requirement")
-          # Some versions may not support -c flag; try parsing output
-          elif "unknown option" in output.lower() or "invalid option" in output.lower():
-              print("Note: swupdate -c flag not supported, using alternative validation")
-              # Alternative: just check swupdate can read the bundle
-              result2 = testvm.execute("swupdate -n -i /tmp/bundles/test-bundle.swu 2>&1 || true")
-              print(f"Alternative validation output:\n{result2[1]}")
-          else:
-              raise Exception(f"Bundle validation failed: {output}")
+        # swupdate -c should succeed (exit 0) for valid bundle
+        if exit_code != 0:
+            # Check for signed image requirement (security feature)
+            if "built for signed images" in output.lower() or "public key" in output.lower():
+                tlog("Note: SWUpdate requires signed bundles (security feature enabled)")
+                tlog("This is expected for production images - bundle signing will be tested separately")
+                tlog("Validation test PASSED: SWUpdate correctly enforces signature requirement")
+            # Some versions may not support -c flag; try parsing output
+            elif "unknown option" in output.lower() or "invalid option" in output.lower():
+                tlog("Note: swupdate -c flag not supported, using alternative validation")
+                # Alternative: just check swupdate can read the bundle
+                result2 = testvm.execute("swupdate -n -i /tmp/bundles/test-bundle.swu 2>&1 || true")
+                tlog(f"Alternative validation output:\n{result2[1]}")
+            else:
+                raise Exception(f"Bundle validation failed: {output}")
 
-      print("Bundle validation completed")
+        tlog("Bundle validation completed")
 
-      # ===== Test 5: Verify hardware compatibility check =====
-      print("\n" + "=" * 60)
-      print("Test 5: Hardware compatibility check")
-      print("=" * 60)
+        # ===== Test 5: Verify hardware compatibility check =====
+        log_section("TEST 5", "Hardware compatibility check")
 
-      # Create bundle with wrong HW compatibility
-      testvm.succeed(
-          "cd /tmp/bundles && "
-          "ROOTFS_SHA256=$(sha256sum rootfs.tar.gz | cut -d' ' -f1) && "
-          "printf '%s\\n' "
-          "'software = {' "
-          "'  version = \"test-1.0.0\";' "
-          "'  hardware-compatibility = [ \"wrong-hardware\" ];' "
-          "'  images: (' "
-          "'    {' "
-          "'      filename = \"rootfs.tar.gz\";' "
-          "'      type = \"archive\";' "
-          "'      path = \"/tmp/swupdate-test\";' "
-          "'      sha256 = \"'\"$ROOTFS_SHA256\"'\";' "
-          "'      compressed = \"zlib\";' "
-          "'    }' "
-          "'  );' "
-          "'};' > sw-description-wrong-hw && "
-          "mv sw-description sw-description.bak && "
-          "mv sw-description-wrong-hw sw-description && "
-          "(echo sw-description; ls -1 | grep -v sw-description | grep -v '\\.bak$') | cpio -o -H crc > wrong-hw-bundle.swu && "
-          "mv sw-description.bak sw-description"
-      )
+        # Create bundle with wrong HW compatibility
+        testvm.succeed(
+            "cd /tmp/bundles && "
+            "ROOTFS_SHA256=$(sha256sum rootfs.tar.gz | cut -d' ' -f1) && "
+            "printf '%s\\n' "
+            "'software = {' "
+            "'  version = \"test-1.0.0\";' "
+            "'  hardware-compatibility = [ \"wrong-hardware\" ];' "
+            "'  images: (' "
+            "'    {' "
+            "'      filename = \"rootfs.tar.gz\";' "
+            "'      type = \"archive\";' "
+            "'      path = \"/tmp/swupdate-test\";' "
+            "'      sha256 = \"'\"$ROOTFS_SHA256\"'\";' "
+            "'      compressed = \"zlib\";' "
+            "'    }' "
+            "'  );' "
+            "'};' > sw-description-wrong-hw && "
+            "mv sw-description sw-description.bak && "
+            "mv sw-description-wrong-hw sw-description && "
+            "(echo sw-description; ls -1 | grep -v sw-description | grep -v '\\.bak$') | cpio -o -H crc > wrong-hw-bundle.swu && "
+            "mv sw-description.bak sw-description"
+        )
 
-      # This should fail due to HW incompatibility
-      result = testvm.execute("swupdate -n -i /tmp/bundles/wrong-hw-bundle.swu 2>&1")
-      print(f"Wrong HW bundle result:\n{result[1]}")
+        # This should fail due to HW incompatibility
+        result = testvm.execute("swupdate -n -i /tmp/bundles/wrong-hw-bundle.swu 2>&1")
+        tlog(f"Wrong HW bundle result:\n{result[1]}")
 
-      # The update should be rejected (non-zero exit or error message)
-      if "not compatible" in result[1].lower() or "hardware" in result[1].lower() or result[0] != 0:
-          print("Hardware compatibility check working correctly")
-      else:
-          print("Warning: Hardware compatibility check may not be enforced")
+        # The update should be rejected (non-zero exit or error message)
+        if "not compatible" in result[1].lower() or "hardware" in result[1].lower() or result[0] != 0:
+            tlog("Hardware compatibility check working correctly")
+        else:
+            tlog("Warning: Hardware compatibility check may not be enforced")
 
-      # ===== Test 6: Verify grub-editenv is available =====
-      print("\n" + "=" * 60)
-      print("Test 6: GRUB environment tools")
-      print("=" * 60)
+        # ===== Test 6: Verify grub-editenv is available =====
+        log_section("TEST 6", "GRUB environment tools")
 
-      testvm.succeed("which grub-editenv")
-      print("grub-editenv is available")
+        testvm.succeed("which grub-editenv")
+        tlog("grub-editenv is available")
 
-      # Check if grubenv exists (may be created on first boot)
-      grubenv_check = testvm.execute("ls -la /boot/efi/EFI/BOOT/grubenv 2>&1 || echo 'grubenv not found'")
-      print(f"grubenv status: {grubenv_check[1]}")
+        # Check if grubenv exists (may be created on first boot)
+        grubenv_check = testvm.execute("ls -la /boot/efi/EFI/BOOT/grubenv 2>&1 || echo 'grubenv not found'")
+        tlog(f"grubenv status: {grubenv_check[1]}")
 
-      print("\n" + "=" * 60)
-      print("ALL TESTS PASSED")
-      print("=" * 60)
-    '';
+        tlog("")
+        tlog("=" * 60)
+        tlog("ALL TESTS PASSED")
+        tlog("=" * 60)
+      '';
   };
 
 in

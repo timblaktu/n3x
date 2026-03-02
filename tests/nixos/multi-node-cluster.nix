@@ -7,6 +7,10 @@
 
 { pkgs, lib, ... }:
 
+let
+  testScripts = import ../lib/test-scripts { inherit lib; };
+in
+
 pkgs.testers.runNixOSTest {
   name = "k3s-multi-node-cluster";
 
@@ -132,75 +136,73 @@ pkgs.testers.runNixOSTest {
   };
 
   testScript = ''
-    import time
+    ${testScripts.utils.all}
 
-    print("=" * 60)
-    print("K3s Multi-node Cluster Test (1 Server + 2 Agents)")
-    print("=" * 60)
+    log_section("TEST", "K3s Multi-node Cluster (1 Server + 2 Agents)")
 
     # Start all nodes
-    print("\n[1/10] Starting all VMs...")
+    tlog("[1/10] Starting all VMs...")
     start_all()
     server.wait_for_unit("multi-user.target")
     agent1.wait_for_unit("multi-user.target")
     agent2.wait_for_unit("multi-user.target")
-    print("✓ All 3 VMs booted successfully")
+    tlog("  All 3 VMs booted successfully")
 
     # Wait for server K3s
-    print("\n[2/10] Waiting for K3s server...")
+    tlog("[2/10] Waiting for K3s server...")
     server.wait_for_unit("k3s.service")
     server.wait_for_open_port(6443)
     server.wait_until_succeeds("k3s kubectl get --raw /readyz", timeout=120)
-    print("✓ K3s server is ready")
+    tlog("  K3s server is ready")
 
     # Wait for server node to be Ready
-    print("\n[3/10] Waiting for server node to be Ready...")
+    tlog("[3/10] Waiting for server node to be Ready...")
     server.wait_until_succeeds(
         "k3s kubectl get nodes --no-headers | grep server | grep -w Ready",
         timeout=120
     )
-    print("✓ Server node is Ready")
+    tlog("  Server node is Ready")
 
     # Start agents
-    print("\n[4/10] Waiting for agent services...")
+    tlog("[4/10] Waiting for agent services...")
     agent1.wait_for_unit("k3s.service")
     agent2.wait_for_unit("k3s.service")
-    print("✓ Both agent services are active")
+    tlog("  Both agent services are active")
 
     # Wait for agents to join
-    print("\n[5/10] Waiting for agent1 to join...")
+    tlog("[5/10] Waiting for agent1 to join...")
     server.wait_until_succeeds(
         "k3s kubectl get nodes --no-headers | grep agent1",
         timeout=120
     )
-    print("✓ Agent1 joined the cluster")
+    tlog("  Agent1 joined the cluster")
 
-    print("\n[6/10] Waiting for agent2 to join...")
+    tlog("[6/10] Waiting for agent2 to join...")
     server.wait_until_succeeds(
         "k3s kubectl get nodes --no-headers | grep agent2",
         timeout=120
     )
-    print("✓ Agent2 joined the cluster")
+    tlog("  Agent2 joined the cluster")
 
     # Wait for all nodes to be Ready
-    print("\n[7/10] Waiting for all nodes to be Ready...")
+    tlog("[7/10] Waiting for all nodes to be Ready...")
     server.wait_until_succeeds(
         "k3s kubectl get nodes --no-headers | grep -w Ready | wc -l | grep 3",
         timeout=180
     )
-    print("✓ All 3 nodes are Ready")
+    tlog("  All 3 nodes are Ready")
 
     # Show cluster state
-    print("\n[8/10] Cluster state:")
+    tlog("[8/10] Cluster state:")
     nodes_output = server.succeed("k3s kubectl get nodes -o wide")
-    print(nodes_output)
+    tlog(nodes_output)
 
     pods_output = server.succeed("k3s kubectl get pods -A -o wide")
-    print("\nSystem pods:")
-    print(pods_output)
+    tlog("System pods:")
+    tlog(pods_output)
 
     # Test workload distribution
-    print("\n[9/10] Testing workload distribution...")
+    tlog("[9/10] Testing workload distribution...")
     server.succeed(
         "k3s kubectl create deployment nginx-test --image=nginx:alpine --replicas=3"
     )
@@ -209,29 +211,27 @@ pkgs.testers.runNixOSTest {
         "k3s kubectl get deployment nginx-test -o jsonpath='{.status.readyReplicas}' | grep 3",
         timeout=180
     )
-    print("✓ 3 replicas deployed successfully")
+    tlog("  3 replicas deployed successfully")
 
     # Check pod distribution
     pod_distribution = server.succeed(
         "k3s kubectl get pods -l app=nginx-test -o jsonpath='{range .items[*]}{.spec.nodeName}{\"\\n\"}{end}' | sort | uniq -c"
     )
-    print("\nPod distribution across nodes:")
-    print(pod_distribution)
+    tlog("Pod distribution across nodes:")
+    tlog(pod_distribution)
 
     # Verify system pods are running
-    print("\n[10/10] Verifying system components...")
+    tlog("[10/10] Verifying system components...")
     server.succeed("k3s kubectl get pods -n kube-system -l k8s-app=kube-dns")
-    print("✓ CoreDNS is running")
+    tlog("  CoreDNS is running")
 
     server.succeed("k3s kubectl get pods -n kube-system -l app=local-path-provisioner")
-    print("✓ Local-path-provisioner is running")
+    tlog("  Local-path-provisioner is running")
 
     # Clean up
     server.succeed("k3s kubectl delete deployment nginx-test")
 
-    print("\n" + "=" * 60)
-    print("✓ All tests passed!")
-    print("✓ Multi-node cluster is fully functional")
-    print("=" * 60)
+    tlog("")
+    tlog("K3s Multi-node Cluster Test - PASSED")
   '';
 }

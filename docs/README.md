@@ -17,7 +17,6 @@ Quick navigation to all project documentation. See also the [top-level README](.
 ### Architecture Decision Records
 - [ADR 001: ISAR Artifact Integration](adr/001-isar-artifact-integration-architecture.md)
 - [Nix Binary Cache Architecture](nix-binary-cache-architecture-decision.md)
-- [ISAR Extraction Design](ISAR-EXTRACTION-DESIGN.md) — Superseded; see [extraction manifest](n3x-extraction-manifest.md)
 
 ## Build System
 - [Application Packages](../backends/debian/packages/README.md) — Debian package development interface
@@ -45,14 +44,11 @@ Quick navigation to all project documentation. See also the [top-level README](.
 - [Infrastructure Overview](../infra/README.md) — AWS provisioning + NixOS runner configs
 - [AWS Runner Provisioning (Pulumi)](../infra/pulumi/README.md)
 - [NixOS Runner Configuration](../infra/nixos-runner/README.md)
-- [CI Privileged Build Requirements](isar-ci-privileged-build-requirements.md)
-- [Air-Gapped Source Audit](oss-air-gapped-source-audit.md)
 
 ## Hardware & Deployment
 - [Jetson Orin Nano Kernel Analysis](jetson-orin-nano-kernel6-analysis-revised.md)
 - [Jetson Orin Nano Overview](jetson-orin-nano.md) — Platform and kernel overview
-- [Jetson OTA Guide](jetson-orin-ota-guide-revised.md)
-- [Deployment Checklist](PHASE-9-DEPLOYMENT-CHECKLIST.md)
+- [Jetson OTA Guide](jetson-swupdate-and-ota.md)
 
 ## Shared Libraries
 - [K3s Flag Generation](../lib/k3s/README.md)
@@ -69,14 +65,5 @@ Quick navigation to all project documentation. See also the [top-level README](.
 - [Hyper-V Nested Virtualization](platform-notes-hyper-v-nested-virtualization.md) — Two-level nesting limit, architecture decision
 - [NixOS VM Bootloader Disk Limitation](nixos-vm-bootloader-disk-limitation.md) — Upstream gap + nixpkgs fork resolution
 
-## Extraction & Migration
-- [n3x Extraction Manifest](n3x-extraction-manifest.md) — Tracks file extraction to downstream repo
-
-## Reference & WIP
-- [Mikrotik Setup Notes](wip-L1.0-mikrotik-setup.md) (WIP)
-- [Infrastructure Survey](wip-L1.1-infrastructure-survey.md) (WIP)
-
 ## Archive
-- [ISAR Interface Design Diagram](diagrams/archive/n3x-isar-interface-design.drawio.svg) — Historical
-- [Sparse Checkout Workflow Diagram](diagrams/archive/n3x-sparse-checkout-workflow.drawio.svg) — Historical
 - [Flow Notes](archive/n3x-flow-notes.md) — Debugging session notes

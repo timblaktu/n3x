@@ -64,14 +64,9 @@ let
       server.wait_for_unit("systemd-networkd.service", timeout=60)
       tlog("  systemd-networkd is active")
 
-      # Give networkd a moment to configure interfaces
-      import time
-      time.sleep(2)
-
-      # IMPORTANT: After sleeping, other system output may have corrupted the shell buffer.
-      # Use succeed() instead of execute() because succeed() is more tolerant of buffer issues.
-      # Run a simple command first to flush any garbage before doing real work.
-      server.succeed("true")
+      # Wait for networkd to configure eth1
+      server.wait_until_succeeds("ip -4 addr show eth1 | grep inet", timeout=30)
+      tlog("  eth1 interface configured")
 
       # Check systemd-networkd-config files
       log_section("CONFIG", "systemd-networkd-config files")

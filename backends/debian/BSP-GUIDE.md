@@ -703,10 +703,10 @@ When using the linux-tegra 6.12 LTS recipe (via `kas/kernel/tegra-6.12.yml`):
 | Kernel source | jetpack-nixos (L4T 5.15) | linux-tegra (mainline 6.12) |
 | Flash tool | jetpack-nixos flash scripts | L4T l4t_initrd_flash.sh |
 | Image format | NixOS system closure | Debian rootfs tarball |
-| Bootloader | L4T CBoot/UEFI | L4T CBoot/UEFI |
+| Bootloader | L4T UEFI (EDK2) | L4T UEFI (EDK2) |
 | DTB source | jetpack-nixos overlay DTBs | Mainline kernel DTBs |
 
-Both backends use the same L4T bootloader chain (MB1 -> MB2 -> CBoot -> kernel). The difference is in rootfs packaging and kernel source.
+Both backends use the same L4T bootloader chain (MB1 → MB2 → UEFI/EDK2 → kernel). The difference is in rootfs packaging and kernel source.
 
 ### Future: Automated Flash
 

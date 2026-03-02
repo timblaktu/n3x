@@ -50,6 +50,49 @@ nix build '.#checks.x86_64-linux.k3s-cluster-simple' --rebuild -L
 - **Profiles**: `simple`, `vlans`, `bonding-vlans`, `dhcp-simple`
 - **16 L4 tests total**: 4 profiles x 2 boot modes x 2 backends
 
+### Test Parallelism (Local Execution)
+
+When running multiple VM tests locally, limit concurrency to avoid CPU saturation and inflated test times:
+
+| Test Category | VMs/Test | Max Parallel | Example |
+|---|---|---|---|
+| L1-L3 single-VM (vm-boot, server-boot, service, network-*, swupdate-*) | 1 | 4 | 4 tests = 4 VMs |
+| L2 two-VM (two-vm-network) | 2 | 2 | 2 tests = 4 VMs |
+| L4 cluster (cluster-simple, cluster-vlans) | 2 | 2 | 2 tests = 4 VMs |
+| L4 bonding cluster (cluster-bonding-vlans) | 2 | 1 | Bond + VLAN setup is CPU-heavy |
+
+**Recommended batching for full Debian test suite:**
+
+```bash
+# Batch 1: Single-VM tests (4 parallel)
+nix build '.#checks.x86_64-linux.debian-vm-boot' \
+          '.#checks.x86_64-linux.debian-server-boot' \
+          '.#checks.x86_64-linux.debian-service' \
+          '.#checks.x86_64-linux.test-swupdate-bundle-validation' -L
+
+# Batch 2: Single-VM tests continued (3 parallel)
+nix build '.#checks.x86_64-linux.test-swupdate-apply' \
+          '.#checks.x86_64-linux.debian-network-simple' \
+          '.#checks.x86_64-linux.debian-network-vlans' -L
+
+# Batch 3: Remaining single-VM + two-VM (2 parallel)
+nix build '.#checks.x86_64-linux.debian-network-bonding' \
+          '.#checks.x86_64-linux.debian-two-vm-network' -L
+
+# Batch 4: Cluster tests (2 parallel max)
+nix build '.#checks.x86_64-linux.debian-cluster-simple' \
+          '.#checks.x86_64-linux.debian-cluster-simple-direct' -L
+
+# Batch 5-7: Remaining cluster tests (2 parallel max each)
+nix build '.#checks.x86_64-linux.debian-cluster-vlans' \
+          '.#checks.x86_64-linux.debian-cluster-vlans-direct' -L
+
+nix build '.#checks.x86_64-linux.debian-cluster-bonding-vlans' \
+          '.#checks.x86_64-linux.debian-cluster-bonding-vlans-direct' -L
+```
+
+**Why this matters**: Running 3 cluster tests simultaneously (6 VMs) inflates each test from ~90s to ~320s due to CPU contention. Sequential or limited-parallel execution is faster overall.
+
 ### Key Source Files
 
 | File | Purpose |

@@ -50,7 +50,6 @@ When a running job is cancelled, GitHub sends SIGTERM to the runner process, the
 
 This means cancellation is always safe: the worst case is that a cancelled run's build progress is lost (not cached), and the next run starts from the last successful cache state. There is no risk of corrupted sstate, corrupted downloads, or a broken Nix store cache.
 
-**Note for GitLab CI migration**: GitLab runners can be configured with persistent local storage (shell executor, Docker executor with mounted volumes), persistent shared caches (MinIO/S3), and long-lived runner processes. The ephemeral-VM model and atomic cache semantics described here are specific to GitHub Actions hosted runners. A GitLab deployment with persistent storage would need its own cache coherence strategy — particularly for ISAR's sstate and download caches, which benefit from persistence across runs but must handle concurrent write access if multiple pipelines run simultaneously.
 
 ## Job Reference
 

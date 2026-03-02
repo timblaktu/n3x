@@ -21,6 +21,10 @@
 
 { pkgs, lib, ... }:
 
+let
+  testScripts = import ../../lib/test-scripts { inherit lib; };
+in
+
 pkgs.testers.runNixOSTest {
   name = "smoke-k3s-service-starts";
 
@@ -49,45 +53,42 @@ pkgs.testers.runNixOSTest {
   };
 
   testScript = ''
+    ${testScripts.utils.all}
     import time
     start = time.time()
 
-    print("=" * 60)
-    print("SMOKE TEST: K3s Service Starts")
-    print("=" * 60)
+    log_section("SMOKE TEST", "K3s Service Starts")
 
     # Step 1: Boot VM
-    print("\n[1/5] Starting VM...")
+    tlog("[1/5] Starting VM...")
     server.start()
     server.wait_for_unit("multi-user.target", timeout=45)
-    print(f"  Booted in {time.time() - start:.1f}s")
+    tlog(f"  Booted in {time.time() - start:.1f}s")
 
     # Step 2: Verify k3s binary
-    print("[2/5] Checking k3s binary...")
+    tlog("[2/5] Checking k3s binary...")
     server.succeed("test -x /run/current-system/sw/bin/k3s")
     version = server.succeed("k3s --version").strip()
-    print(f"  {version}")
+    tlog(f"  {version}")
 
     # Step 3: Wait for k3s service to be active
-    print("[3/5] Waiting for k3s.service to start...")
+    tlog("[3/5] Waiting for k3s.service to start...")
     server.wait_for_unit("k3s.service", timeout=60)
-    print(f"  k3s.service active at {time.time() - start:.1f}s")
+    tlog(f"  k3s.service active at {time.time() - start:.1f}s")
 
     # Step 4: Wait for port 6443 (API server)
-    print("[4/5] Waiting for API server port 6443...")
+    tlog("[4/5] Waiting for API server port 6443...")
     server.wait_for_open_port(6443, timeout=30)
-    print(f"  Port 6443 open at {time.time() - start:.1f}s")
+    tlog(f"  Port 6443 open at {time.time() - start:.1f}s")
 
     # Step 5: Quick API health check (may not be fully ready)
-    print("[5/5] Testing API responsiveness...")
+    tlog("[5/5] Testing API responsiveness...")
     code, output = server.execute("curl -sk https://localhost:6443/livez 2>&1")
-    print(f"  /livez response: {output.strip()}")
+    tlog(f"  /livez response: {output.strip()}")
     # Note: We don't assert on this - just logging. Full readiness is a separate test.
 
     elapsed = time.time() - start
-    print(f"\n{'=' * 60}")
-    print(f"SMOKE TEST PASSED in {elapsed:.1f}s")
-    print("  k3s service started and API port is open")
-    print("=" * 60)
+    tlog(f"SMOKE TEST PASSED in {elapsed:.1f}s")
+    tlog("  k3s service started and API port is open")
   '';
 }

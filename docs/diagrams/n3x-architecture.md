@@ -31,7 +31,7 @@ flowchart TB
             NIXMOD["NixOS Modules\nsystemd.network, K3s units\nKyverno, Longhorn, Flannel"]
             NIXCFG["nixosConfigurations\nmkNixOSConfig per node\nbuild+test = 1 derivation"]
             NIXOUT["Outputs\nqcow2/raw, AMI images\nnixos-rebuild"]
-            NIXINFRA["Infrastructure\ndisko, sops-nix\nnixos-anywhere\njetpack-nixos"]
+            NIXINFRA["Deployment Tools\ndisko, sops-nix\nnixos-anywhere\njetpack-nixos"]
             NIXDEB["Nix-built .deb\nk3s, k3s-system-config"]
 
             NIXMOD --> NIXCFG --> NIXOUT
@@ -150,7 +150,7 @@ on a developer laptop and in a CI pipeline.
 | **Shared Data** | verify-kas-packages.nix | Eval-time parity enforcement |
 | **NixOS** | NixOS Modules | Declarative host config (network, K3s, add-ons) |
 | **NixOS** | nixosConfigurations | Per-node configs, build+test = 1 derivation |
-| **NixOS** | Infrastructure tools | disko, sops-nix, nixos-anywhere, jetpack-nixos |
+| **NixOS** | Deployment tools | disko, sops-nix, nixos-anywhere, jetpack-nixos |
 | **NixOS** | Nix-built .deb | k3s binary + system config as Debian packages |
 | **Debian** | kas YAML overlays | Compositional build parameterization |
 | **Debian** | kas-container | Containerized BitBake execution |
@@ -168,7 +168,7 @@ on a developer laptop and in a CI pipeline.
 
 1. **Nix Flake as Container**: The flake evaluation boundary encompasses all builds, tests, and verification
 2. **Shared Data Layer**: Both backends consume the same profiles through the same transformation functions
-3. **Dual Backend Architecture**: NixOS for infrastructure, Debian (ISAR) for embedded Linux — same abstractions, different build systems
+3. **Dual Backend Architecture**: NixOS and Debian (ISAR) as parallel backends — same abstractions, different build systems
 4. **Cross-Backend Artifacts**: Nix builds .deb packages and generates network configs consumed by the Debian backend
 5. **Test Convergence**: Both backends are VM-tested using the same NixOS test driver and QEMU/KVM
 6. **Eval-Time Verification**: `nix flake check --no-build` catches configuration errors before any build starts

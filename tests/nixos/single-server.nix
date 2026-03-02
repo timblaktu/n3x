@@ -7,6 +7,10 @@
 
 { pkgs, lib, inputs, ... }:
 
+let
+  testScripts = import ../lib/test-scripts { inherit lib; };
+in
+
 pkgs.testers.runNixOSTest {
   name = "k3s-single-server";
 
@@ -71,31 +75,29 @@ pkgs.testers.runNixOSTest {
   };
 
   testScript = ''
-    import time
+    ${testScripts.utils.all}
 
-    print("=" * 60)
-    print("K3s Single Server Test")
-    print("=" * 60)
+    log_section("TEST", "K3s Single Server")
 
     # Start the server VM
-    print("\n[1/6] Starting server VM...")
+    tlog("[1/6] Starting server VM...")
     server.start()
     server.wait_for_unit("multi-user.target")
-    print("✓ Server VM booted successfully")
+    tlog("  Server VM booted successfully")
 
     # Wait for K3s service to start
-    print("\n[2/6] Waiting for K3s service to start...")
+    tlog("[2/6] Waiting for K3s service to start...")
     server.wait_for_unit("k3s.service")
-    print("✓ K3s service is active")
+    tlog("  K3s service is active")
 
     # Wait for Kubernetes API to be available
-    print("\n[3/6] Waiting for Kubernetes API server...")
+    tlog("[3/6] Waiting for Kubernetes API server...")
     server.wait_for_open_port(6443)
     server.wait_until_succeeds("k3s kubectl get --raw /readyz", timeout=120)
-    print("✓ Kubernetes API server is ready")
+    tlog("  Kubernetes API server is ready")
 
     # Verify the server node is registered
-    print("\n[4/6] Verifying node registration...")
+    tlog("[4/6] Verifying node registration...")
     server.wait_until_succeeds(
         "k3s kubectl get nodes | grep server",
         timeout=60
@@ -103,19 +105,19 @@ pkgs.testers.runNixOSTest {
 
     # Get node status
     node_status = server.succeed("k3s kubectl get nodes -o wide")
-    print("Node status:")
-    print(node_status)
+    tlog("Node status:")
+    tlog(node_status)
 
     # Wait for node to be Ready
-    print("\n[5/6] Waiting for node to reach Ready state...")
+    tlog("[5/6] Waiting for node to reach Ready state...")
     server.wait_until_succeeds(
         "k3s kubectl get nodes --no-headers | awk '{print $2}' | grep -w Ready",
         timeout=120
     )
-    print("✓ Node is Ready")
+    tlog("  Node is Ready")
 
     # Verify core system pods are running
-    print("\n[6/6] Verifying system pods...")
+    tlog("[6/6] Verifying system pods...")
     server.wait_until_succeeds(
         "k3s kubectl get pods -n kube-system --no-headers | grep -v Completed",
         timeout=120
@@ -123,26 +125,26 @@ pkgs.testers.runNixOSTest {
 
     # Get all pods status
     pods_status = server.succeed("k3s kubectl get pods -A -o wide")
-    print("\nAll pods:")
-    print(pods_status)
+    tlog("All pods:")
+    tlog(pods_status)
 
     # Count running pods in kube-system
     running_pods = server.succeed(
         "k3s kubectl get pods -n kube-system --field-selector=status.phase=Running --no-headers | wc -l"
     ).strip()
 
-    print(f"\n✓ Found {running_pods} running system pods")
+    tlog(f"Found {running_pods} running system pods")
 
     # Verify critical components are present
-    print("\nVerifying critical components...")
+    tlog("Verifying critical components...")
     server.succeed("k3s kubectl get pods -n kube-system -l k8s-app=kube-dns")
-    print("✓ CoreDNS is running")
+    tlog("  CoreDNS is running")
 
     server.succeed("k3s kubectl get pods -n kube-system -l app=local-path-provisioner")
-    print("✓ Local-path-provisioner is running")
+    tlog("  Local-path-provisioner is running")
 
     # Test basic workload deployment
-    print("\nTesting workload deployment...")
+    tlog("Testing workload deployment...")
     server.succeed(
         "k3s kubectl create deployment nginx-test --image=nginx:alpine"
     )
@@ -152,25 +154,24 @@ pkgs.testers.runNixOSTest {
         "k3s kubectl get deployment nginx-test -o jsonpath='{.status.readyReplicas}' | grep 1",
         timeout=120
     )
-    print("✓ Test deployment is ready")
+    tlog("  Test deployment is ready")
 
     # Get deployment status
     deployment_status = server.succeed("k3s kubectl get deployments,pods -l app=nginx-test")
-    print("\nTest deployment:")
-    print(deployment_status)
+    tlog("Test deployment:")
+    tlog(deployment_status)
 
     # Verify pod is running
     pod_phase = server.succeed(
         "k3s kubectl get pods -l app=nginx-test -o jsonpath='{.items[0].status.phase}'"
     ).strip()
     assert pod_phase == "Running", f"Expected pod phase 'Running', got '{pod_phase}'"
-    print("✓ Test pod is Running")
+    tlog("  Test pod is Running")
 
     # Clean up test deployment
     server.succeed("k3s kubectl delete deployment nginx-test")
 
-    print("\n" + "=" * 60)
-    print("✓ All tests passed!")
-    print("=" * 60)
+    tlog("")
+    tlog("K3s Single Server Test - PASSED")
   '';
 }

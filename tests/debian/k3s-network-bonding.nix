@@ -77,9 +77,11 @@ let
       server.wait_for_unit("systemd-networkd.service", timeout=60)
       tlog("  systemd-networkd is active")
 
-      # Give networkd time to create bond and VLAN interfaces
-      import time
-      time.sleep(5)
+      # Wait for networkd to create bond and VLAN interfaces
+      server.wait_until_succeeds("ip link show bond0", timeout=30)
+      server.wait_until_succeeds("ip link show bond0.200", timeout=30)
+      server.wait_until_succeeds("ip link show bond0.100", timeout=30)
+      tlog("  Bond and VLAN interfaces created")
 
       # Check kernel modules
       log_section("MODULES", "Kernel Modules")

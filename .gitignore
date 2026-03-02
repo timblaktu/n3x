@@ -133,3 +133,6 @@ dist/
 .claude-task-state
 .claude/settings.local.json
 .claude/user-plans/
+
+# Local drafts (not for repo)
+docs/drafts/

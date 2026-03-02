@@ -151,26 +151,11 @@ let
       log_section("PHASE 4", "Waiting for API server")
 
       # k3s takes time to extract embedded binaries and start containerd/etcd
-      # Check status periodically while waiting for port
-      import time as time_module
-      for attempt in range(30):  # 5 minutes total (30 * 10 seconds)
-          code, port_check = server.execute("ss -tlnp 2>&1 | grep 6443 || true")
-          if "6443" in port_check:
-              tlog(f"  Port 6443 open after {attempt * 10}s")
-              break
-
-          # Show what k3s is doing
-          if attempt % 6 == 0:  # Every minute
-              code, status = server.execute("systemctl is-active k3s-server 2>&1")
-              code, journal = server.execute("journalctl -u k3s-server -n 5 --no-pager 2>&1")
-              tlog(f"  [{attempt * 10}s] Service: {status.strip()}, Recent log:\n{journal.strip()}")
-
-          time_module.sleep(10)
-      else:
-          # Final debug info if port never opened
-          code, journal = server.execute("journalctl -u k3s-server -n 30 --no-pager 2>&1")
-          tlog(f"  Port 6443 never opened. Full journal:\n{journal}")
-          raise Exception("API server port 6443 did not open within 300 seconds")
+      run_with_retry(
+          server, "ss -tlnp | grep 6443",
+          max_attempts=30, delay=10, log_every=6,
+          description="API port 6443"
+      )
 
       tlog("  API server port 6443 is open")
 
@@ -178,16 +163,11 @@ let
       log_section("PHASE 5", "Verifying kubectl access")
 
       # Wait for kubeconfig to be created
-      for i in range(30):
-          code, output = server.execute("test -f /etc/rancher/k3s/k3s.yaml")
-          if code == 0:
-              tlog(f"  kubeconfig ready after {i+1} attempts")
-              break
-          import time
-          time.sleep(5)
-      else:
-          # Even if kubeconfig wait fails, continue to see what state we're in
-          tlog("  WARNING: kubeconfig not found after waiting")
+      result = run_with_retry(
+          server, "test -f /etc/rancher/k3s/k3s.yaml",
+          max_attempts=30, delay=5, on_failure="warn",
+          description="kubeconfig"
+      )
 
       # Try kubectl get nodes
       code, nodes_output = server.execute("kubectl get nodes -o wide 2>&1")

@@ -825,15 +825,13 @@ let
     # Bonded VDE interfaces have ~7 second TCP establishment latency on first connection
     # This warm-up prevents k3s from timing out on /cacerts fetch
     tlog("  Pre-warming TCP connection to server-1:6443...")
-    for attempt in range(3):
-        warmup_code, warmup_out = server_2.execute("timeout 15 curl -sk https://${primaryIP}:6443/cacerts 2>&1")
-        if warmup_code == 0 or "Unauthorized" in warmup_out or "cacerts" in warmup_out.lower():
-            tlog(f"  Connection warm-up successful (attempt {attempt+1})")
-            break
-        tlog(f"  Warm-up attempt {attempt+1} result: code={warmup_code}")
-        time.sleep(2)
-    else:
-        tlog("  WARNING: Connection warm-up failed, k3s may timeout")
+    run_with_retry(
+        server_2, "timeout 15 curl -sk https://${primaryIP}:6443/cacerts",
+        max_attempts=3, delay=2,
+        success_check=lambda code, out: code == 0 or "Unauthorized" in out or "cacerts" in out.lower(),
+        description="TCP warm-up to server-1:6443",
+        on_failure="warn"
+    )
 
     # Start secondary - use execute() to capture logs before failing
     start_code, start_output = server_2.execute("systemctl start k3s-server.service")
